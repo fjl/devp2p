@@ -30,14 +30,16 @@ to an ENR.
 ### Node ID Binding
 
 Since the public key used by TLS does not match the key used for signing the ENR, fresh
-connections must prove ownership of the node key that signed the ENR. To do this, the both
-sides must create a binding signature over the negotiated key material of the QUIC
-connection.
+connections must prove ownership of the node key that signed the ENR.
 
-To get the key material, use a 'key exporter' with the `ENR key binding v1` label and a
-length of `32`.
+To do this, the dialer generates a random 32 byte nonce and sends it in the CONNECT
+request, in the `WT-Available-Protocols` header. Here the nonce is hex-encoded string.
 
-The first message on stream zero sent by the server is the `id-proof`.
+The server opens the first bidirectional stream and sends the `id-proof` as its first
+message.
 
-    id-proof = "ENR-key-proof-v1" || id-signature
-    id-signature = sign(nodekey, tls-exported-key)
+    id-proof = sign(nodekey, "ENR-key-proof-v1" || nonce)
+
+The dialer recovers the public key from the signature and checks it against the node key
+in the ENR it dialed. For connections between nodes, the server may challenge the dialer
+the same way (TBD)
